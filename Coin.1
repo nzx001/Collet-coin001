@@ -1,0 +1,114 @@
+-- AUTO COLLECT + PAINEL (MOBILE SAFE) | by nzx
+
+local Players = game:GetService("Players")
+local lp = Players.LocalPlayer
+
+-- Character
+local char = lp.Character or lp.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+lp.CharacterAdded:Connect(function(c)
+	char = c
+	hum = c:WaitForChild("Humanoid")
+	hrp = c:WaitForChild("HumanoidRootPart")
+end)
+
+-- Estado
+local enabled = false
+local blacklist = {}
+
+-- ====== FILTROS ======
+local function isDangerByName(obj)
+	local n = obj.Name:lower()
+	return n:find("laser")
+		or n:find("kill")
+		or n:find("damage")
+		or n:find("lava")
+		or n:find("egg")      -- bloqueia ovo admin
+		or n:find("admin")
+end
+
+-- ====== UI ======
+local gui = Instance.new("ScreenGui")
+gui.Name = "AutoCollectUI"
+gui.Parent = lp:WaitForChild("PlayerGui")
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 180, 0, 120)
+frame.Position = UDim2.new(0.05, 0, 0.35, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,28)
+title.BackgroundTransparency = 1
+title.Text = "Auto Coletor"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+
+local button = Instance.new("TextButton", frame)
+button.Size = UDim2.new(0.8,0,0,38)
+button.Position = UDim2.new(0.1,0,0.35,0)
+button.Text = "DESLIGADO"
+button.BackgroundColor3 = Color3.fromRGB(170,0,0)
+button.TextColor3 = Color3.new(1,1,1)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 16
+button.BorderSizePixel = 0
+
+-- Texto pequeno embaixo
+local credit = Instance.new("TextLabel", frame)
+credit.Size = UDim2.new(1,0,0,16)
+credit.Position = UDim2.new(0,0,1,-18)
+credit.BackgroundTransparency = 1
+credit.Text = "(by nzx)"
+credit.TextColor3 = Color3.fromRGB(150,150,150)
+credit.Font = Enum.Font.SourceSans
+credit.TextSize = 12
+
+button.MouseButton1Click:Connect(function()
+	enabled = not enabled
+	if enabled then
+		button.Text = "LIGADO"
+		button.BackgroundColor3 = Color3.fromRGB(0,170,0)
+	else
+		button.Text = "DESLIGADO"
+		button.BackgroundColor3 = Color3.fromRGB(170,0,0)
+	end
+end)
+
+-- ====== LOOP ======
+task.spawn(function()
+	while task.wait(0.3) do
+		if not enabled then continue end
+
+		for _,obj in pairs(workspace:GetDescendants()) do
+			if not enabled then break end
+
+			if obj:IsA("BasePart")
+			and obj:FindFirstChild("TouchInterest")
+			and not blacklist[obj]
+			and not isDangerByName(obj)
+			and obj.Size.Magnitude < 10 then
+
+				local old = hrp.CFrame
+				local hp = hum.Health
+
+				-- Teleporte
+				hrp.CFrame = obj.CFrame + Vector3.new(0,2,0)
+				task.wait(0.05)
+
+				-- Se machucar OU sumir do jogo → blacklist
+				if hum.Health < hp then
+					blacklist[obj] = true
+					hrp.CFrame = old
+				end
+			end
+		end
+	end
+end)
